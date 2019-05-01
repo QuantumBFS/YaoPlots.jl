@@ -1,0 +1,10 @@
+name = "YaoPlots"
+uuid = "e8ac6296-b229-56cf-b646-365211dba4d7"
+authors = ["Roger-luo <hiroger@qq.com>"]
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
