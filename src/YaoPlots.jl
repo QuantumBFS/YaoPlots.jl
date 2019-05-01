@@ -1,5 +1,5 @@
 module YaoPlots
 
-greet() = print("Hello World!")
+include("bloch_sphere.jl")
 
 end # module
