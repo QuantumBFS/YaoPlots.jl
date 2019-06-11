@@ -1,7 +1,6 @@
 module YaoPlots
 
 export plot
-
 using Yao, Compose, Colors, Measures
 
 function square(ctx, name)
@@ -21,6 +20,12 @@ function connector(ctx::Context, x0, x1, xs, ys)
     end
     return out
 end
+
+plot(x::AbstractBlock; figsize=(10cm, 1cm), fontsize=10) = compose(context(0, 0, figsize...),
+    connector(context(0.0, 0), 0, 0.1, 1:nqubits(x), 1:nqubits(x)),
+    (context(0.1, 0, 0.8, 1), x, Compose.fontsize(fontsize)),
+    connector(context(0.9, 0), 0, 0.1, 1:nqubits(x), 1:nqubits(x))
+)
 
 Compose.compose(ctx::Context, x::AbstractBlock) = compose!(copy(ctx), x)
 Compose.compose!(ctx::Context, x::HGate) = square(ctx, "H")
@@ -48,15 +53,6 @@ function Compose.compose!(ctx::Context, blk::ChainBlock)
     return out
 end
 
-
-plot(x::AbstractBlock; figsize=(10cm, 1cm)) = compose(context(0, 0, figsize...),
-    connector(context(0.0, 0), 0, 0.1, 1:nqubits(x), 1:nqubits(x)),
-    (context(0.1, 0, 0.8, 1), x, fontsize(8)),
-    connector(context(0.9, 0), 0, 0.1, 1:nqubits(x), 1:nqubits(x))
-)
-
-plot(chain(X, H, X, H); figsize=(15cm, 1cm))
-
 function Compose.compose!(ctx::Context, blk::KronBlock)
     out = compose(ctx)
     y = 0; n = nqubits(blk)
@@ -72,8 +68,5 @@ function Compose.compose!(ctx::Context, blk::KronBlock)
     end
     return out
 end
-
-compose(context(), kron(4, 1=>X, 2=>X, 4=>X), fontsize(9))
-compose(context(0, 0, 5cm, 10cm), chain(kron(4, 1=>X, 3=>X), kron(4, 2=>X, 4=>X), kron(4, 1=>X, 4=>X)), fontsize(7))
 
 end # module
