@@ -1,4 +1,4 @@
-using YaoPlots
+using Yao, YaoPlots, Measures
 using Test
 
 plot(chain(X, H, X, H); figsize=(15cm, 1cm), fontsize=8)
