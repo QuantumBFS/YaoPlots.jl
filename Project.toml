@@ -1,6 +1,6 @@
 name = "YaoPlots"
 uuid = "e8ac6296-b229-56cf-b646-365211dba4d7"
-authors = ["Roger-luo <hiroger@qq.com>"]
+authors = ["Roger-luo <hiroger@qq.com>", "Lucy-Low <llow@uwaterloo.ca>"]
 version = "0.1.0"
 
 [extras]
