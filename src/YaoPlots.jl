@@ -1,6 +1,4 @@
-compose_demo_v2.jl
-
-# plots a demo quantum circuit in julia with compose julia framework 
+# Plots a demo quantum circuit in julia with compose julia framework 
 # Greenberger-Horne-Zeilinger (GHZ) state with Quantum Circuit 
 
 # import Pkg; Pkg.add("Yao")
