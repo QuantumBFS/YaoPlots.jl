@@ -5,7 +5,7 @@
 export Plot, output_string, added_function 
 
 
-__precompile__()
+# __precompile__()
 # Option to disable precompile package
 # __precompile__(false)
 
