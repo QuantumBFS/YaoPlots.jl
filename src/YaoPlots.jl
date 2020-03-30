@@ -1,36 +1,37 @@
-# YaoPlots.jl Package Main Module Outline
+# YaoPlots.jl 
+#This is a component package module for [Yao.jl](https://github.com/QuantumBFS/Yao.jl).
 
-# import Pkg; Pkg.add("Yao")
-# import Pkg; Pkg.add("Compose")
+# User can run using YaoPlots using export plot function. Exports are the public API: internal functionality should not be export. Anything else must be qualified by the package name (YaoPlots.not_exported).ed!
+export Plot, output_string, added_function 
 
-# Set  package to precompile
+
 __precompile__()
-# If not going to precompile package, use option to disable it
+# Option to disable precompile package
 # __precompile__(false)
 
 module YaoPlots
 
-# At the top of the package module, import dependencies:
 using Yao, Compose, Colors, Measures
 
 
 # Define abstract types ???
 abstract AbstractMyType
 abstract AbstractMyType2 <: AbstractMyType
+"""
+    AbstractBlock
+Abstract type for quantum circuit blocks.
+"""
+abstract type AbstractBlock{N} 
+end
 
-# What functionality is exported by a package: Only values which are exported enter the namespace, anything else must be qualified by the package name (ExamplePackage.not_exported).
-# Exports are the public API: internal functionality should not be exported!
-
-export plot, output_string, added_function # User can run using YaoPlots using export plot function 
- 
 
 
-# Code in other files
+# File includes
 include("output_string.jl")
-include("compose_demo_v2.jl")
+include("YaoPlots.jl")
 include("utils.jl")
 
 
-end # module
+end # YaoPlots
 
 

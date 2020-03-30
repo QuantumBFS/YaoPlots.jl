@@ -131,3 +131,13 @@ function Compose.compose!(ctx::Context, blk::KronBlock)
     end
     return out
 end
+
+
+
+
+"""
+TODO: qubit = 2 right now it only works for 1 (don't know how to start this)
+TODO: try writing your own software that does this
+
+"""
+    
