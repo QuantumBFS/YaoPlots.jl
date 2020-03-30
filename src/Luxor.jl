@@ -3,7 +3,7 @@ using Luxor
 # Create a graphic file and possibly also display and/or open it
 @png juliacircles() 
 
-plot(x::AbstractBlock) = luxor(context(0, 0, figsize...)) # luxor not defined ???
+plot(x::AbstractBlock) = luxor(context(0, 0, figsize...)) # TODO: luxor not defined ???
     Drawing(1000, 1000, "image.png")
     origin()
     background("white")
