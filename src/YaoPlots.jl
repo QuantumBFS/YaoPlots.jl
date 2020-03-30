@@ -21,7 +21,8 @@ abstract AbstractMyType2 <: AbstractMyType
 # What functionality is exported by a package: Only values which are exported enter the namespace, anything else must be qualified by the package name (ExamplePackage.not_exported).
 # Exports are the public API: internal functionality should not be exported!
 
-export circuit_plot, output_string, added_function 
+export plot, output_string, added_function # User can run using YaoPlots using export plot function 
+ 
 
 
 # Code in other files
