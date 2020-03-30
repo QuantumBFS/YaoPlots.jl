@@ -1,21 +1,3 @@
-compose_demo_v2.jl
-
-# plots a demo quantum circuit in julia with compose julia framework 
-# Greenberger-Horne-Zeilinger (GHZ) state with Quantum Circuit 
-
-# import Pkg; Pkg.add("Yao")
-# import Pkg; Pkg.add("Compose")
-# using Compose
-# using Yao, Compose, Colors, Measures
-
-module YaoPlots
-
-export plot
-using Yao, Compose, Colors, Measures
-
-# Size of quantum circuit 
-set_default_graphic_size(14cm,4cm)
-
 # square(ctx, name) where name = name of your quantum circuit 
 function square(ctx, name)
     compose(ctx,
@@ -149,12 +131,3 @@ function Compose.compose!(ctx::Context, blk::KronBlock)
     end
     return out
 end
-
-end # module
-
-"""
-TODO: qubit = 2 right now it only works for 1 (don't know how to start this)
-TODO: try writing your own software that does this
-
-"""
-    

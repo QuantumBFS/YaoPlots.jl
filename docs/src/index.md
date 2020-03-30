@@ -1,3 +1,3 @@
-# ExamplePackage.jl
+# YaoPlots.jl
 
-Documentation for ExamplePackage.jl
+Documentation for YaoPlots.jl

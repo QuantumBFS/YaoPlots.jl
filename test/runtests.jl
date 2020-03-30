@@ -1,5 +1,6 @@
-using ExamplePackage
+using YaoPlots
 using Base.Test
+using utils.jl
 
 # The testing setup
 # Here we split different categories into tests
