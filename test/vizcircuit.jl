@@ -29,4 +29,8 @@ end
 		@test YaoPlots.depth(c) == 3
 	end
 	@test gg isa Context
+
+	g = put(5, (3, 4)=>SWAP) |> vizcircuit(; scale=0.7, w_line=0.8, w_depth=0.9)
+	@test g isa Context
+	@test_throws ErrorException vizcircuit(put(5, (3,4)=>kron(X, Y)); scale=0.7, w_line=0.8, w_depth=0.9)
 end

@@ -1,7 +1,7 @@
 using Viznet: canvas
 using YaoBlocks
 
-export CircuitStyles, CircuitGrid, circuit_canvas
+export CircuitStyles, CircuitGrid, circuit_canvas, vizcircuit
 
 module CircuitStyles
 	using Compose
@@ -57,6 +57,7 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
 	locs = getindex.(loc_brush_texts, 1)
     i = frontier(c, locs...) + 1
 	local jpre
+	loc_brush_texts = sort(loc_brush_texts, by=x->x[1])
     for (k, (j, b, txt)) in enumerate(loc_brush_texts)
 		b >> c[i, j]
 		if length(txt) >= 3
@@ -98,13 +99,17 @@ function draw!(c::CircuitGrid, p::PutBlock{N,1}) where N
     _draw!(c, [(p.locs..., get_brush_text(p.content)...)])
 end
 
+function draw!(c::CircuitGrid, p::PutBlock{N,2,<:SWAPGate}) where N
+    _draw!(c, [(p.locs[1], CircuitStyles.X(), ""), (p.locs[2], CircuitStyles.X(), "")])
+end
+
 function draw!(c::CircuitGrid, cb::ControlBlock{N,GT,C,1}) where {N,GT,C}
     locs = [cb.ctrl_locs..., cb.locs...]
-	_draw!(c, [[(loc, CircuitStyles.C(), "") for loc=cb.ctrl_locs]..., (cb.locs..., get_brush_text(cb.content)...)])
+	_draw!(c, [[(loc, CircuitStyles.C(), "") for loc=cb.ctrl_locs]..., (cb.locs..., get_cbrush_text(cb.content)...)])
 end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
-	@eval get_brush_text(b::RotationGate{1,T,<:$GATE}) where T = (CircuitStyles.WG(), "$($(SYM))$(Base.REPLCompletions.latex_symbols["\\_$(pretty_angle(b.theta))"]))")
+	@eval get_brush_text(b::RotationGate{1,T,<:$GATE}) where T = (CircuitStyles.WG(), "$($(SYM))($(pretty_angle(b.theta)))")
 end
 
 pretty_angle(theta) = theta
@@ -119,16 +124,30 @@ get_cbrush_text(b::XGate) = (CircuitStyles.X(), "")
 get_cbrush_text(b::ZGate) = (CircuitStyles.C(), "")
 
 # front end
-function circuit_canvas(f, nline::Int)
-	c = CircuitGrid(nline)
+function vizcircuit(blk::AbstractBlock; w_depth=0.85, w_line=0.75, scale=1.0)
+	circuit_canvas(nqubits(blk); w_depth=w_depth, w_line=w_line) do c
+		blk >> c
+	end |> rescale(scale)
+end
+
+function circuit_canvas(f, nline::Int; w_depth=0.85, w_line=0.75)
+	c = CircuitGrid(nline; w_depth=w_depth, w_line=w_line)
 	g = canvas() do
 	   f(c)
        finalize!(c)
 	end
-	a, b = depth(c)+1, nline
+	a, b = (depth(c)+1)*w_depth, nline*w_line
 	Compose.set_default_graphic_size(a*2.5*cm, b*2.5*cm)
 	compose(context(0.5/a, -0.5/b, 1/a, 1/b), g)
 end
 
 Base.:>>(blk::AbstractBlock, c::CircuitGrid) = draw!(c, blk)
 Base.:>>(blk::Function, c::CircuitGrid) = blk(nline(c)) >> c
+
+function rescale(factor)
+	a, b = Compose.default_graphic_width, Compose.default_graphic_height
+	Compose.set_default_graphic_size(a*factor, b*factor)
+	graph -> compose(context(), graph)
+end
+
+vizcircuit(; kwargs...) = c->vizcircuit(c; kwargs...)
