@@ -5,38 +5,38 @@ export CircuitStyles, CircuitGrid, circuit_canvas, vizcircuit
 
 module CircuitStyles
 	using Compose
-    r = 0.2
-	lw = 1pt
-	textsize = 16pt
-	paramtextsize = 12pt
-	fontfamily = "Helvetica Neue"
-    G() = compose(context(), rectangle(-r, -r, 2r, 2r), fill("white"), stroke("black"), linewidth(lw))
-    C() = compose(context(), circle(0.0, 0.0, r/3), fill("black"))
-    NC() = compose(context(), circle(0.0, 0.0, r/3), fill("white"), stroke("black"), linewidth(lw))
-    X() = compose(context(), xgon(0.0, 0.0, r, 4), fill("black"))
+    const r = Ref(0.2)
+	const lw = Ref(1pt)
+	const textsize = Ref(16pt)
+	const paramtextsize = Ref(10pt)
+	const fontfamily = Ref("Helvetica Neue")
+    G() = compose(context(), rectangle(-r[], -r[], 2*r[], 2*r[]), fill("white"), stroke("black"), linewidth(lw[]))
+    C() = compose(context(), circle(0.0, 0.0, r[]/3), fill("black"))
+    NC() = compose(context(), circle(0.0, 0.0, r[]/3), fill("white"), stroke("black"), linewidth(lw[]))
+    X() = compose(context(), xgon(0.0, 0.0, r[], 4), fill("black"))
 	NOT() = compose(context(),
-               (context(), circle(0.0, 0.0, r), stroke("black"), linewidth(lw), fill("transparent")),
-               (context(), polygon([(-r, 0.0), (r, 0.0)]), stroke("black"), linewidth(lw)),
-               (context(), polygon([(0.0, -r), (0.0, r)]), stroke("black"), linewidth(lw))
+               (context(), circle(0.0, 0.0, r[]), stroke("black"), linewidth(lw[]), fill("transparent")),
+               (context(), polygon([(-r[], 0.0), (r[], 0.0)]), stroke("black"), linewidth(lw[])),
+               (context(), polygon([(0.0, -r[]), (0.0, r[])]), stroke("black"), linewidth(lw[]))
                )
-    WG() = compose(context(), rectangle(-1.5*r, -r, 3*r, 2r), fill("white"), stroke("black"), linewidth(lw))
-    LINE() = compose(context(), line(), stroke("black"), linewidth(lw))
-	TEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(textsize), font(fontfamily))
-	PARAMTEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(paramtextsize), font(fontfamily))
+    WG() = compose(context(), rectangle(-1.5*r[], -r[], 3*r[], 2*r[]), fill("white"), stroke("black"), linewidth(lw[]))
+    LINE() = compose(context(), line(), stroke("black"), linewidth(lw[]))
+	TEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(textsize[]), font(fontfamily[]))
+	PARAMTEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(paramtextsize[]), font(fontfamily[]))
 	function setlw(_lw)
-		global lw = _lw
+		lw[] = _lw
 	end
 	function setr(_r)
-		global r = _r
+		r[] = _r
 	end
 	function settextsize(_textsize)
-		global textsize = _textsize
+		textsize[] = _textsize
 	end
 	function setparamtextsize(_paramtextsize)
-		global paramtextsize = _paramtextsize
+		paramtextsize[] = _paramtextsize
 	end
 	function setfontfamily(_fontfamily)
-		global fontfamily = _fontfamily
+		fontfamily[] = _fontfamily
 	end
 end
 
@@ -93,25 +93,42 @@ function finalize!(c::CircuitGrid)
 	c.frontier .= i
 end
 
-function draw!(c::CircuitGrid, b::AbstractBlock)
+function draw!(c::CircuitGrid, b::AbstractBlock, address)
     error("block type $(typeof(b)) does not support visualization.")
 end
 
-function draw!(c::CircuitGrid, p::ChainBlock{N}) where N
-	draw!.(Ref(c), subblocks(p))
+function draw!(c::CircuitGrid, p::ChainBlock{N}, address) where N
+	draw!.(Ref(c), subblocks(p), Ref(address))
 end
 
-function draw!(c::CircuitGrid, p::PutBlock{N,1}) where N
-    _draw!(c, [(p.locs..., get_brush_text(p.content)...)])
+function draw!(c::CircuitGrid, p::PutBlock{N,1,<:PrimitiveBlock}, address) where N
+	locs = [address[p.locs[1]]]
+	draw!(c, p.content, [address[p.locs[1]]])
 end
 
-function draw!(c::CircuitGrid, p::PutBlock{N,2,<:SWAPGate}) where N
-    _draw!(c, [(p.locs[1], CircuitStyles.X(), ""), (p.locs[2], CircuitStyles.X(), "")])
+function draw!(c::CircuitGrid, p::PutBlock{N,M,<:PrimitiveBlock}, address) where {N,M}
+	locs = [address[i] for i in p.locs]
+    _draw!(c, [(loc, CircuitStyles.G(), "") for loc in locs])
 end
 
-function draw!(c::CircuitGrid, cb::ControlBlock{N,GT,C,1}) where {N,GT,C}
-    locs = [cb.ctrl_locs..., cb.locs...]
-	_draw!(c, [[(loc, (bit == 1 ? CircuitStyles.C() : CircuitStyles.NC()), "") for (loc, bit)=zip(cb.ctrl_locs, cb.ctrl_config)]..., (cb.locs..., get_cbrush_text(cb.content)...)])
+function draw!(c::CircuitGrid, p::PrimitiveBlock{1}, address)
+    _draw!(c, [(address[], get_brush_text(p)...)])
+end
+
+function draw!(c::CircuitGrid, p::PutBlock{N,M,<:ChainBlock}, address) where {N,M}
+	locs = [address[i] for i in p.locs]
+	draw!.(Ref(c), subblocks(p.content), Ref(locs))
+end
+
+function draw!(c::CircuitGrid, p::PutBlock{N,2,<:SWAPGate}, address) where N
+	locs = [address[i] for i in p.locs]
+    _draw!(c, [(locs[1], CircuitStyles.X(), ""), (locs[2], CircuitStyles.X(), "")])
+end
+
+function draw!(c::CircuitGrid, cb::ControlBlock{N,GT,C,1}, address) where {N,GT,C}
+    ctrl_locs = [address[i] for i in cb.ctrl_locs]
+    locs = [address[i] for i in cb.locs]
+	_draw!(c, [[(loc, (bit == 1 ? CircuitStyles.C() : CircuitStyles.NC()), "") for (loc, bit)=zip(ctrl_locs, cb.ctrl_config)]..., (locs..., get_cbrush_text(cb.content)...)])
 end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
@@ -121,6 +138,7 @@ end
 pretty_angle(theta) = theta
 pretty_angle(theta::Float64) = round(theta; digits=2)
 
+get_brush_text(b::PrimitiveBlock{1}) = (CircuitStyles.G(), "")
 get_brush_text(b::ShiftGate) = (CircuitStyles.WG(), "ϕ($(pretty_angle(b.theta)))")
 get_brush_text(b::PhaseGate) = (CircuitStyles.WG(), "$(pretty_angle(b.theta))im")
 get_brush_text(b::T) where T<:ConstantGate = (CircuitStyles.G(), string(T.name.name)[1:end-4])
@@ -130,9 +148,10 @@ get_cbrush_text(b::XGate) = (CircuitStyles.NOT(), "")
 get_cbrush_text(b::ZGate) = (CircuitStyles.C(), "")
 
 # front end
+plot(blk::AbstractBlock; kwargs...) = vizcircuit(blk; kwargs...)
 function vizcircuit(blk::AbstractBlock; w_depth=0.85, w_line=0.75, scale=1.0)
 	circuit_canvas(nqubits(blk); w_depth=w_depth, w_line=w_line) do c
-		blk >> c
+		basicstyle(blk) >> c
 	end |> rescale(scale)
 end
 
@@ -147,7 +166,7 @@ function circuit_canvas(f, nline::Int; w_depth=0.85, w_line=0.75)
 	compose(context(0.5/a, -0.5/b, 1/a, 1/b), g)
 end
 
-Base.:>>(blk::AbstractBlock, c::CircuitGrid) = draw!(c, blk)
+Base.:>>(blk::AbstractBlock{N}, c::CircuitGrid) where N = draw!(c, blk, collect(1:N))
 Base.:>>(blk::Function, c::CircuitGrid) = blk(nline(c)) >> c
 
 function rescale(factor)
@@ -157,3 +176,7 @@ function rescale(factor)
 end
 
 vizcircuit(; kwargs...) = c->vizcircuit(c; kwargs...)
+
+function basicstyle(blk::AbstractBlock)
+	YaoBlocks.Optimise.simplify(blk, rules=[YaoBlocks.Optimise.to_basictypes])
+end

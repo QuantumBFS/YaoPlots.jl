@@ -16,7 +16,7 @@ end
 	@test YaoPlots.frontier(c, 2, 3) == 0
 	@test YaoPlots.depth(c) == 0
 	circuit_canvas(5) do c
-		YaoPlots.draw!(c, put(5, 3=>X))
+		YaoPlots.draw!(c, put(5, 3=>X), 1:5)
 		@test YaoPlots.frontier(c, 1, 2) == 0
 		@test YaoPlots.frontier(c, 3, 5) == 1
 		@test YaoPlots.depth(c) == 1
@@ -32,7 +32,8 @@ end
 
 	g = put(5, (3, 4)=>SWAP) |> vizcircuit(; scale=0.7, w_line=0.8, w_depth=0.9)
 	@test g isa Context
-	@test_throws ErrorException vizcircuit(put(5, (3,4)=>kron(X, Y)); scale=0.7, w_line=0.8, w_depth=0.9)
+	@test vizcircuit(put(5, (3,4)=>kron(X, Y)); scale=0.7, w_line=0.8, w_depth=0.9) isa Context
 
 	@test vizcircuit(control(10, (2, -3), 6=>X)) isa Context
+	@test plot(put(7, (2,3)=>matblock(randn(4,4)))) isa Context
 end
