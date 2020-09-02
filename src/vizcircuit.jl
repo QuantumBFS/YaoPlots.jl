@@ -12,7 +12,13 @@ module CircuitStyles
 	fontfamily = "Helvetica Neue"
     G() = compose(context(), rectangle(-r, -r, 2r, 2r), fill("white"), stroke("black"), linewidth(lw))
     C() = compose(context(), circle(0.0, 0.0, r/3), fill("black"))
+    NC() = compose(context(), circle(0.0, 0.0, r/3), fill("white"), stroke("black"), linewidth(lw))
     X() = compose(context(), xgon(0.0, 0.0, r, 4), fill("black"))
+	NOT() = compose(context(),
+               (context(), circle(0.0, 0.0, r), stroke("black"), linewidth(lw), fill("transparent")),
+               (context(), polygon([(-r, 0.0), (r, 0.0)]), stroke("black"), linewidth(lw)),
+               (context(), polygon([(0.0, -r), (0.0, r)]), stroke("black"), linewidth(lw))
+               )
     WG() = compose(context(), rectangle(-1.5*r, -r, 3*r, 2r), fill("white"), stroke("black"), linewidth(lw))
     LINE() = compose(context(), line(), stroke("black"), linewidth(lw))
 	TEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(textsize), font(fontfamily))
@@ -105,7 +111,7 @@ end
 
 function draw!(c::CircuitGrid, cb::ControlBlock{N,GT,C,1}) where {N,GT,C}
     locs = [cb.ctrl_locs..., cb.locs...]
-	_draw!(c, [[(loc, CircuitStyles.C(), "") for loc=cb.ctrl_locs]..., (cb.locs..., get_cbrush_text(cb.content)...)])
+	_draw!(c, [[(loc, (bit == 1 ? CircuitStyles.C() : CircuitStyles.NC()), "") for (loc, bit)=zip(cb.ctrl_locs, cb.ctrl_config)]..., (cb.locs..., get_cbrush_text(cb.content)...)])
 end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
@@ -120,7 +126,7 @@ get_brush_text(b::PhaseGate) = (CircuitStyles.WG(), "$(pretty_angle(b.theta))im"
 get_brush_text(b::T) where T<:ConstantGate = (CircuitStyles.G(), string(T.name.name)[1:end-4])
 
 get_cbrush_text(b::AbstractBlock) = get_brush_text(b)
-get_cbrush_text(b::XGate) = (CircuitStyles.X(), "")
+get_cbrush_text(b::XGate) = (CircuitStyles.NOT(), "")
 get_cbrush_text(b::ZGate) = (CircuitStyles.C(), "")
 
 # front end
