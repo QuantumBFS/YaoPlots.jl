@@ -25,7 +25,8 @@ end
 	gg = circuit_canvas(5) do c
 		put(3=>X) >> c
 		control(2, 3=>X) >> c
-		@test YaoPlots.depth(c) == 2
+		chain(5, control(2, 3=>X), put(1=>X)) >> c
+		@test YaoPlots.depth(c) == 3
 	end
 	@test gg isa Context
 end

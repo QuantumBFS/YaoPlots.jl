@@ -7,7 +7,8 @@ module CircuitStyles
 	using Compose
     r = 0.2
 	lw = 1pt
-	textsize = 12pt
+	textsize = 16pt
+	paramtextsize = 12pt
 	fontfamily = "Helvetica Neue"
     G() = compose(context(), rectangle(-r, -r, 2r, 2r), fill("white"), stroke("black"), linewidth(lw))
     C() = compose(context(), circle(0.0, 0.0, r/3), fill("black"))
@@ -15,6 +16,7 @@ module CircuitStyles
     WG() = compose(context(), rectangle(-1.5*r, -r, 3*r, 2r), fill("white"), stroke("black"), linewidth(lw))
     LINE() = compose(context(), line(), stroke("black"), linewidth(lw))
 	TEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(textsize), font(fontfamily))
+	PARAMTEXT() = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(paramtextsize), font(fontfamily))
 	function setlw(_lw)
 		global lw = _lw
 	end
@@ -23,6 +25,9 @@ module CircuitStyles
 	end
 	function settextsize(_textsize)
 		global textsize = _textsize
+	end
+	function setparamtextsize(_paramtextsize)
+		global paramtextsize = _paramtextsize
 	end
 	function setfontfamily(_fontfamily)
 		global fontfamily = _fontfamily
@@ -54,8 +59,9 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
 	local jpre
     for (k, (j, b, txt)) in enumerate(loc_brush_texts)
 		b >> c[i, j]
-		CircuitStyles.LINE() >> c[(i, j); (c.frontier[j], j)]
-		if txt!=""
+		if length(txt) >= 3
+			CircuitStyles.PARAMTEXT() >> (c[i, j], txt)
+		elseif length(txt) >= 1
 			CircuitStyles.TEXT() >> (c[i, j], txt)
 		end
 		if k!=1
@@ -63,7 +69,12 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
 		end
 		jpre = j
     end
-	c.frontier[min(locs..., nline(c)):max(locs..., 1)] .= i
+
+	jmin, jmax = min(locs..., nline(c)), max(locs..., 1)
+	for j = jmin:jmax
+		CircuitStyles.LINE() >> c[(i, j); (c.frontier[j], j)]
+		c.frontier[j] = i
+	end
 end
 
 function finalize!(c::CircuitGrid)
@@ -80,7 +91,7 @@ function draw!(c::CircuitGrid, b::AbstractBlock)
 end
 
 function draw!(c::CircuitGrid, p::ChainBlock{N}) where N
-	draw!.(subblocks(p), Ref(c))
+	draw!.(Ref(c), subblocks(p))
 end
 
 function draw!(c::CircuitGrid, p::PutBlock{N,1}) where N
@@ -93,12 +104,15 @@ function draw!(c::CircuitGrid, cb::ControlBlock{N,GT,C,1}) where {N,GT,C}
 end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
-	@eval get_brush_text(b::RotationGate{1,T,<:$GATE}) where T = (CircuitStyles.WG(), "$($(SYM))($(b.theta))")
+	@eval get_brush_text(b::RotationGate{1,T,<:$GATE}) where T = (CircuitStyles.WG(), "$($(SYM))$(Base.REPLCompletions.latex_symbols["\\_$(pretty_angle(b.theta))"]))")
 end
 
-get_brush_text(b::ShiftGate) = (CircuitStyles.WG(), "ϕ($(b.theta))")
-get_brush_text(b::PhaseGate) = (CircuitStyles.WG(), "$(b.theta)im")
-get_brush_text(b::T) where T<:ConstantGate = (CircuitStyles.G(), string(T)[1:end-4])
+pretty_angle(theta) = theta
+pretty_angle(theta::Float64) = round(theta; digits=2)
+
+get_brush_text(b::ShiftGate) = (CircuitStyles.WG(), "ϕ($(pretty_angle(b.theta)))")
+get_brush_text(b::PhaseGate) = (CircuitStyles.WG(), "$(pretty_angle(b.theta))im")
+get_brush_text(b::T) where T<:ConstantGate = (CircuitStyles.G(), string(T.name.name)[1:end-4])
 
 get_cbrush_text(b::AbstractBlock) = get_brush_text(b)
 get_cbrush_text(b::XGate) = (CircuitStyles.X(), "")
@@ -111,8 +125,9 @@ function circuit_canvas(f, nline::Int)
 	   f(c)
        finalize!(c)
 	end
-	n = max(depth(c)+1, nline)
-	compose(context(0.5/n, -0.5/n, 1/n, 1/n), g)
+	a, b = depth(c)+1, nline
+	Compose.set_default_graphic_size(a*2.5*cm, b*2.5*cm)
+	compose(context(0.5/a, -0.5/b, 1/a, 1/b), g)
 end
 
 Base.:>>(blk::AbstractBlock, c::CircuitGrid) = draw!(c, blk)
