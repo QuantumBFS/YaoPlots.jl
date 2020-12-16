@@ -13,16 +13,8 @@ end
 
 YaoBlocks.content(cb::ContinuousBlockMarker) = cb.content
 function ContinuousBlockMarker(x::BT, name::String) where {N,BT<:AbstractBlock{N}}
-    #if is_increasing_seq(occupied_locs(x))
-        ContinuousBlockMarker{BT,N}(x, name)
-    #else
-    #    error("target block $x does not have a continous location.")
-    #end
+    ContinuousBlockMarker{BT,N}(x, name)
 end
-#function qubit_range(cb::ContinuousBlockMarker)
-    #locs = occupied_locs(cb)
-    #minimum(locs):maximum(locs)
-#end
 
 function is_continuous_chunk(x)
     length(x) == 0 && return true
