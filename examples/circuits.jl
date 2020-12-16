@@ -36,3 +36,4 @@ chain(5, [put(5, 2=>ConstGate.Sdag), put(5, 3=>ConstGate.Tdag),
     put(5, (2,)=>ConstGate.T),
     ]) |> vizcircuit |> _save("constgates.png")
 
+chain(5, [ContinuousBlockMarker(put(5, (2,3)=>SWAP), "SWAP"), ContinuousBlockMarker(put(5, 2=>I2), "id"), put(5, 2=>ContinuousBlockMarker(X, "X")), control(5, (5,3), (2,4,1)=>ContinuousBlockMarker(put(3, (1,3)=>SWAP), "SWAP"))]) |> vizcircuit |>  _save("multiqubit.png")
