@@ -186,11 +186,10 @@ function draw!(c::CircuitGrid, cb::ControlBlock{N,GT,C}, address, controls) wher
 	draw!(c, cb.content, locs, [controls..., mycontrols...])
 end
 
-function draw!(c::CircuitGrid, cb::ContinuousBlockMarker{GT,N}, address, controls) where {N,GT}
-    locs = [address[i] for i in occupied_locs(cb)]
-    length(locs) == 0 && return
-    is_continuous_chunk(locs) || error("address not continuous in a block marked as continous.")
-	_draw!(c, [controls..., (minimum(locs):maximum(locs), CircuitStyles.MULTIGATE((length(locs)-1)*c.w_line), cb.name)])
+function draw!(c::CircuitGrid, cb::LabelBlock{GT,N}, address, controls) where {N,GT}
+    length(address) == 0 && return
+    is_continuous_chunk(address) || error("address not continuous in a block marked as continous.")
+	_draw!(c, [controls..., (minimum(address):maximum(address), CircuitStyles.MULTIGATE((length(address)-1)*c.w_line), cb.name)])
 end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
