@@ -12,7 +12,3 @@ end
 @testset "zx_plot" begin
     include("zx_plot.jl")
 end
-
-@testset "zx_plot_vega" begin
-    include("zx_plot_vega.jl")
-end

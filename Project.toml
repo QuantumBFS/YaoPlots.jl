@@ -20,7 +20,7 @@ Compose = "0.8, 0.9"
 Multigraphs = "0.2"
 Viznet = "0.3.1"
 YaoBlocks = "0.11"
-ZXCalculus = "0.4.2"
+ZXCalculus = "0.4.4"
 julia = "1"
 
 [extras]

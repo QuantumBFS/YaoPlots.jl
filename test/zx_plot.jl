@@ -1,4 +1,5 @@
-using ZXCalculus, Test
+using Test
+using ZXCalculus, YaoPlots
 using YaoHIR, YaoLocations
 using CompilerPluginTools
 
@@ -34,7 +35,9 @@ ir = @make_ircode begin
 end
 bir = BlockIR(ir, 4, c)
 zxd = convert_to_zxd(bir)
+zxg = ZXGraph(zxd)
 
-using YaoPlots
-@test plot(zxd; scale = 3) !== nothing
-@test plot(ZXGraph(zxd)) !== nothing
+@test plot(zxd) !== nothing
+@test plot(zxg) !== nothing
+@test plot(zxd; backend = :compose) !== nothing
+@test plot(zxg; backend = :compose) !== nothing
