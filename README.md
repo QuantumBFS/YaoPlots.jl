@@ -65,3 +65,44 @@ If you are using a Pluto/Jupyter notebook, Atom/VSCode editor, you should see th
 
 ![zxd](examples/demo_zxd.svg)
 ![zxg](examples/demo_zxg.svg)
+
+## Adjusting the plotting attributes
+
+Various attributes of the visualizations can be altered 
+
+For example:
+```julia
+using YaoPlots, Yao
+YaoPlots.CircuitStyles.linecolor[] = "#845422" # or the brown color
+YaoPlots.CircuitStyles.gate_bgcolor[] = "#40e0d0" # or the turquoise color
+YaoPlots.CircuitStyles.textcolor[] = "black" # the default text color
+YaoPlots.CircuitStyles.fontfamily[] = "JuliaMono" # specify your favorite font here, defalut being Helvetica Neue
+
+plot(chain(3, put(1=>X), repeat(3, H)))
+```
+
+![attribute_example_1](examples/attr_circuit_1.svg)
+
+`YaoPlots.CircuitStyles.linecolor[]`, `YaoPlots.CircuitStyles.gate_bgcolor[]`, `YaoPlots.CircuitStyles.textcolor[]` used to define linecolor, background color of gates, and text color respectively, take hexadecimal color codes as well as color names as string. 
+
+Other attributes are,
+- `YaoPlots.CircuitStyles.lw[]` for line width, default value being `1pt`
+- `YaoPlots.CircuitStyles.textsize[]` for text size, default value being `16pt`
+- `YaoPlots.CircuitStyles.paramtextsize[]` for parameter text size, for parameterized gates, default value being `10pt`
+
+Another example,
+
+```julia
+using YaoPlots, Yao
+YaoPlots.CircuitStyles.linecolor[] = "pink" 
+YaoPlots.CircuitStyles.gate_bgcolor[] = "yellow" 
+YaoPlots.CircuitStyles.textcolor[] = "#000080" # the navy blue color
+YaoPlots.CircuitStyles.fontfamily[] = "JuliaMono"
+YaoPlots.CircuitStyles.lw[] = 2.5pt
+YaoPlots.CircuitStyles.textsize[] = 13pt
+YaoPlots.CircuitStyles.paramtextsize[] = 8pt
+		
+plot(chain(3, put(1=>X), repeat(3, H), put(2=>Y), repeat(3, Rx(π/2))))
+```
+
+![attribute_example_2](examples/attr_circuit_2.svg)
