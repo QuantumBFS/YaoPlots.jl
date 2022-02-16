@@ -4,7 +4,7 @@ using Compose: CurvePrimitive, Form
 using YaoBlocks
 using BitBasis
 
-export CircuitStyles, CircuitGrid, circuit_canvas, vizcircuit
+export CircuitStyles, CircuitGrid, circuit_canvas, vizcircuit, pt, cm
 
 module CircuitStyles
     using Compose

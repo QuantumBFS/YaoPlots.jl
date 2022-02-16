@@ -53,3 +53,15 @@ end
 	@test YaoPlots.pretty_angle(-π*0.5) == "-π/2"
 	@test YaoPlots.pretty_angle(1.411110) == "1.41"
 end
+
+@testset "readme" begin
+    YaoPlots.CircuitStyles.linecolor[] = "pink" 
+    YaoPlots.CircuitStyles.gate_bgcolor[] = "yellow" 
+    YaoPlots.CircuitStyles.textcolor[] = "#000080" # the navy blue color
+    YaoPlots.CircuitStyles.fontfamily[] = "JuliaMono"
+    YaoPlots.CircuitStyles.lw[] = 2.5pt
+    YaoPlots.CircuitStyles.textsize[] = 13pt
+    YaoPlots.CircuitStyles.paramtextsize[] = 8pt
+            
+    @test plot(chain(3, put(1=>X), repeat(3, H), put(2=>Y), repeat(3, Rx(π/2)))) isa Compose.Context
+end
