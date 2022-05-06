@@ -25,10 +25,13 @@ end
 
 	gg = circuit_canvas(5) do c
 		put(3=>X) >> c
+		put(3=>matblock(rand_unitary(2); tag="xxx")) >> c
+		put(3=>igate(1)) >> c
+		time_evolve(put(3,3=>igate(1)), 0.1) >> c
 		control(2, 3=>X) >> c
 		control(2, 3=>shift(0.5)) >> c
 		chain(5, control(2, 3=>X), put(1=>X)) >> c
-		@test YaoPlots.depth(c) == 4
+		@test YaoPlots.depth(c) == 6
 	end
 	@test gg isa Context
 

@@ -7,6 +7,9 @@ YaoPlots.CircuitStyles.linecolor[] = "#000000"
 # qft circuit
 vizcircuit(qft_circuit(5)) |> _save("qft.png")
 
+# labeled and time evolution
+vizcircuit(chain(control(5, 3, (2,4)=>matblock(rand_unitary(4); tag="label")), put(5, (2,4)=>matblock(rand_unitary(4); tag="label")), time_evolve(put(5, 2=>X), 0.2))) |> _save("labelled.png")
+
 # variational circuit
 vizcircuit(variational_circuit(5)) |> _save("variational.png")
 # vizcircuit(variational_circuit(5; mode=:Merged))
