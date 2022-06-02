@@ -22,7 +22,8 @@ vizcircuit(general_U4()) |> _save("u4.png")
 vizcircuit(rand_supremacy2d(2, 2, 8)) |> _save("supremacy2d.png")
 
 # google 52 qubit
-vizcircuit(rand_google53(10)) |> _save("google53.png")
+vizcircuit(rand_google53(2); scale=0.3) |> _save("google53.png")
+# vizcircuit(rand_google53(10); scale=0.3) |> _save("google53.png")
 
 # control blocks
 vizcircuit(chain(control(5, (2,-3), 4=>X), control(5, (-4, -2), 1=>Z))) |> _save("controls.png")

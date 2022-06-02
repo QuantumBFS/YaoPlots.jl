@@ -81,7 +81,7 @@ module CircuitStyles
         )
 
     render(::ComposeSVG, ::Line, params) = compose(context(), line(), stroke(linecolor[]), linewidth(lw[]))
-    render(::ComposeSVG, t::Text, params) = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(t.fontsize), fill(textcolor[]), font(fontfamily[]))
+    render(::ComposeSVG, t::Text, params) = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(t.fontsize*scale[]), fill(textcolor[]), font(fontfamily[]))
 
     Base.@kwdef struct GateStyles
         g = Box(2*r[], 2*r[])
@@ -324,8 +324,8 @@ get_brush_texts(c, ::ConstGate.PuGate) = (c.gatestyles.g, "P+")
 get_brush_texts(c, ::ConstGate.PdGate) = (c.gatestyles.g, "P-")
 get_brush_texts(c, ::ConstGate.P0Gate) = (c.gatestyles.g, "P₀")
 get_brush_texts(c, ::ConstGate.P1Gate) = (c.gatestyles.g, "P₁")
-get_brush_texts(c, b::PrimitiveBlock) = (c.gatestyles.g, string(b)), nqudits(b)
-get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.wg, string(b)), nqudits(b)
+get_brush_texts(c, b::PrimitiveBlock) = (c.gatestyles.g, string(b))
+get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.wg, string(b))
 get_brush_texts(c, b::ShiftGate) = (c.gatestyles.wg, "ϕ($(pretty_angle(b.theta)))")
 get_brush_texts(c, b::PhaseGate) = (c.gatestyles.wg, "^$(pretty_angle(b.theta))")
 function get_brush_texts(c, b::T) where T<:ConstantGate
