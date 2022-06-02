@@ -8,7 +8,8 @@ YaoPlots.CircuitStyles.linecolor[] = "#000000"
 vizcircuit(qft_circuit(5)) |> _save("qft.png")
 
 # labeled and time evolution
-vizcircuit(chain(control(5, 3, (2,4)=>matblock(rand_unitary(4); tag="label")), put(5, (2,4)=>matblock(rand_unitary(4); tag="label")), time_evolve(put(5, 2=>X), 0.2))) |> _save("labelled.png")
+vizcircuit(chain(control(5, 3, (2,4)=>matblock(rand_unitary(4); tag="label")),
+    put(5, (2,4)=>matblock(rand_unitary(4); tag="label")), time_evolve(put(5, 2=>X), 0.2))) |> _save("labelled.png")
 
 # variational circuit
 vizcircuit(variational_circuit(5)) |> _save("variational.png")
@@ -40,7 +41,7 @@ chain(5, [put(5, 2=>ConstGate.Sdag), put(5, 3=>ConstGate.Tdag),
     put(5, (2,)=>ConstGate.T),
     ]) |> vizcircuit |> _save("constgates.png")
 
-chain(5, [put(5, (2,3)=>label(SWAP, "SWAP")'), put(5, 2=>label(I2, "id")), put(5, 2=>label(X, "X")), control(5, (5,3), (2,4,1)=>put(3, (1,3)=>label(SWAP, "SWAP")))]) |> vizcircuit |>  _save("multiqubit.png")
+chain(5, [put(5, (2,3)=>matblock(Matrix(SWAP), tag="SWAP")'), put(5, 2=>matblock(mat(I2), tag="id")), put(5, 2=>label(X, "X")), control(5, (5,3), (2,4,1)=>put(3, (1,3)=>label(SWAP, "SWAP")))]) |> vizcircuit |>  _save("multiqubit.png")
 
 YaoPlots.CircuitStyles.linecolor[] = "#FFFFFF"
 # qft circuit

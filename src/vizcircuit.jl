@@ -13,7 +13,7 @@ module CircuitStyles
     const lw = Ref(1pt)
     const textsize = Ref(16pt)
     const paramtextsize = Ref(10pt)
-    const fontfamily = Ref("Helvetica Neue")
+    const fontfamily = Ref("monospace")
     const linecolor = Ref("#000000")
     const gate_bgcolor = Ref("#FFFFFF")
     const textcolor = Ref("#000000")
@@ -89,7 +89,7 @@ module CircuitStyles
         x = Cross()
         nc = NDot()
         not = OPlus()
-        wg = Box(2*r[], 3*r[])
+        wg = Box(2*r[], 2*r[])
         measure = MeasureBox()
 
         # other styles
@@ -124,16 +124,23 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
     isempty(loc_brush_texts) && return
     # a loc can be a integer, or a range
     locs = Iterators.flatten(getindex.(loc_brush_texts, 1)) |> collect
-    i = frontier(c, locs...) + 1
+
+    # get the gate width and the circuit depth to draw
+    max_width = maximum(x->text_width_and_size(x[3]) |> first, loc_brush_texts)
+    ncolumn = max(1, ceil(Int, max_width/c.w_depth + 0.1))  # 0.1 is the minimum gap between two columns
+    ipre = frontier(c, minimum(locs):maximum(locs)...)
+    i = ipre + ncolumn/2
+
     local jpre
     loc_brush_texts = sort(loc_brush_texts, by=x->first(x[1]))
     for (k, (j, b, txt)) in enumerate(loc_brush_texts)
         length(j) == 0 && continue
+        wspace, fontsize = text_width_and_size(txt)
         jmid = (minimum(j)+maximum(j))/2
-        context = CircuitStyles.Context(; wspace=get_textwidth(txt, autotextsize(txt)),
-                                        hspace=(maximum(locs)-minimum(locs)) * c.w_line)
+        context = CircuitStyles.Context(; wspace=wspace,
+                                        hspace=(maximum(j)-minimum(j)) * c.w_line)
         CircuitStyles.render(c.backend, b, context) >> c[i, jmid]
-        CircuitStyles.render(c.backend, c.gatestyles.text, context) >> (c[i, jmid], txt)
+        CircuitStyles.render(c.backend, CircuitStyles.Text(fontsize), context) >> (c[i, jmid], txt)
         # use line to connect blocks in the same gate
         if k!=1
             CircuitStyles.render(c.backend, c.gatestyles.line, context) >> c[(i, jmid); (i, jpre)]
@@ -142,19 +149,18 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
     end
 
     #jmin, jmax = min(locs..., nline(c)), max(locs..., 1)
-    for j in locs
-        CircuitStyles.render(CircuitStyles.ComposeSVG(), c.gatestyles.line, nothing) >> c[(i, j); (c.frontier[j], j)]
-        c.frontier[j] = i
+    for j in minimum(locs):maximum(locs)
+        CircuitStyles.render(CircuitStyles.ComposeSVG(), c.gatestyles.line, nothing) >> c[(ipre+ncolumn, j); (c.frontier[j], j)]
+        c.frontier[j] = ipre + ncolumn
     end
 end
 
-function autotextsize(text)
-    length(text) > 3 ? CircuitStyles.paramtextsize[] : CircuitStyles.textsize[]
-end
-
-function get_textwidth(s::AbstractString, textsize)
+function text_width_and_size(text)
+    W = maximum(x->textwidth(x), split(text, "\n"))
+    fontsize = W > 3 ? CircuitStyles.paramtextsize[] : CircuitStyles.textsize[]
     # -2 because the gate has a default size
-    max(maximum(x->textwidth(x), split(s, "\n")) - 2, 0)*textsize.value * 0.03  # mm to cm
+    width = max(W - 4, 0) * fontsize.value * 0.025  # mm to cm
+    return width, fontsize
 end
 
 # function _draw!(c::CircuitGrid, b::MultiBox)
@@ -183,13 +189,12 @@ function initialize!(c::CircuitGrid; starting_texts, starting_offset)
 end
 
 function finalize!(c::CircuitGrid; show_ending_bar, ending_offset, ending_texts)
-    i = frontier(c, 1, nline(c)) + 1
+    i = frontier(c, 1, nline(c))
     for j=1:nline(c)
         show_ending_bar && c.gatestyles.line >> c[(i, j-0.2); (i, j+0.2)]
         CircuitStyles.render(c.backend, c.gatestyles.line, nothing) >> c[(i, j); (c.frontier[j], j)]
         ending_texts !== nothing && c.gatestyles.text >> (c[i+ending_offset, j], string(ending_texts[j]))
     end
-    c.frontier .= i
 end
 
 # elementary
@@ -199,7 +204,11 @@ end
 
 function draw!(c::CircuitGrid, p::PrimitiveBlock, address, controls)
     bts = length(controls)>=1 ? get_cbrush_texts(c, p) : get_brush_texts(c, p)
-    _draw!(c, [controls..., [(address[i], bts[i]...) for i=occupied_locs(p)]...])
+    _draw!(c, [controls..., (getindex.(Ref(address), occupied_locs(p)), bts[1], bts[2])])
+end
+function draw!(c::CircuitGrid, p::Daggered{<:PrimitiveBlock}, address, controls)
+    bts = length(controls)>=1 ? get_cbrush_texts(c, content(p)) : get_brush_texts(c, content(p))
+    _draw!(c, [controls..., (getindex.(Ref(address), occupied_locs(p)), bts[1], bts[2]*"'")])
 end
 
 function draw!(c::CircuitGrid, p::Scale, address, controls)
@@ -209,6 +218,29 @@ function draw!(c::CircuitGrid, p::Scale, address, controls)
     end
     draw!(c, YaoBlocks.phase(angle(fp)), [first(address)], controls)
     draw!(c, p.content, address, controls)
+end
+# Special primitive gates
+function draw!(c::CircuitGrid, ::I2Gate, address, controls)
+    return
+end
+function draw!(c::CircuitGrid, ::IdentityGate, address, controls)
+    return
+end
+function draw!(c::CircuitGrid, p::ConstGate.SWAPGate, address, controls)
+    bts = [(c.gatestyles.x, ""), (c.gatestyles.x, "")]
+    _draw!(c, [controls..., [(address[l], bt...) for (l, bt) in zip(occupied_locs(p), bts)]...])
+end
+function draw!(c::CircuitGrid, p::ConstGate.CNOTGate, address, controls)
+    bts = [(c.gatestyles.c, ""), (c.gatestyles.x, "")]
+    _draw!(c, [controls..., [(address[l], bt...) for (l, bt) in zip(occupied_locs(p), bts)]...])
+end
+function draw!(c::CircuitGrid, p::ConstGate.CZGate, address, controls)
+    bts = [(c.gatestyles.c, ""), (c.gatestyles.c, "")]
+    _draw!(c, [controls..., [(address[l], bt...) for (l, bt) in zip(occupied_locs(p), bts)]...])
+end
+function draw!(c::CircuitGrid, p::ConstGate.ToffoliGate, address, controls)
+    bts = [(c.gatestyles.c, ""), (c.gatestyles.c, ""), (c.gatestyles.x, "")]
+    _draw!(c, [controls..., [(address[l], bt...) for (l, bt) in zip(occupied_locs(p), bts)]...])
 end
 
 # composite
@@ -261,7 +293,7 @@ end
 # end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
-    @eval get_brush_texts(c, b::RotationGate{D,T,<:$GATE}) where {D,T} = [(c.gatestyles.wg, "$($(SYM))($(pretty_angle(b.theta)))")]
+    @eval get_brush_texts(c, b::RotationGate{D,T,<:$GATE}) where {D,T} = (c.gatestyles.wg, "$($(SYM))($(pretty_angle(b.theta)))")
 end
 
 pretty_angle(theta) = string(theta)
@@ -286,34 +318,28 @@ function pretty_angle(theta::AbstractFloat)
     end
 end
 
-get_brush_texts(c, ::ConstGate.CNOTGate) = [(c.gatestyles.c, ""), (c.gatestyles.x, "")]
-get_brush_texts(c, ::ConstGate.CZGate) = [(c.gatestyles.c, ""), (c.gatestyles.c, "")]
-get_brush_texts(c, ::ConstGate.ToffoliGate) = [(c.gatestyles.c, ""), (c.gatestyles.c, ""), (c.gatestyles.x, "")]
-get_brush_texts(c, ::ConstGate.SdagGate) = [(c.gatestyles.g, "S'")]
-get_brush_texts(c, ::ConstGate.TdagGate) = [(c.gatestyles.g, "T'")]
-get_brush_texts(c, ::ConstGate.PuGate) = [(c.gatestyles.g, "P+")]
-get_brush_texts(c, ::ConstGate.PdGate) = [(c.gatestyles.g, "P-")]
-get_brush_texts(c, ::ConstGate.P0Gate) = [(c.gatestyles.g, "P₀")]
-get_brush_texts(c, ::ConstGate.P1Gate) = [(c.gatestyles.g, "P₁")]
-get_brush_texts(c, ::ConstGate.I2Gate) = []
-get_brush_texts(c, ::SWAPGate) = [(c.gatestyles.x, ""), (c.gatestyles.x, "")]
-get_brush_texts(c, ::IdentityGate) = []
-get_brush_texts(c, b::PrimitiveBlock) = fill((c.gatestyles.g, string(b)), nqudits(b))
-get_brush_texts(c, b::TimeEvolution) = fill((c.gatestyles.wg, string(b)), nqudits(b))
-get_brush_texts(c, b::ShiftGate) = [(c.gatestyles.wg, "ϕ($(pretty_angle(b.theta)))")]
-get_brush_texts(c, b::PhaseGate) = [(c.gatestyles.wg, "^$(pretty_angle(b.theta))")]
+get_brush_texts(c, ::ConstGate.SdagGate) = (c.gatestyles.g, "S'")
+get_brush_texts(c, ::ConstGate.TdagGate) = (c.gatestyles.g, "T'")
+get_brush_texts(c, ::ConstGate.PuGate) = (c.gatestyles.g, "P+")
+get_brush_texts(c, ::ConstGate.PdGate) = (c.gatestyles.g, "P-")
+get_brush_texts(c, ::ConstGate.P0Gate) = (c.gatestyles.g, "P₀")
+get_brush_texts(c, ::ConstGate.P1Gate) = (c.gatestyles.g, "P₁")
+get_brush_texts(c, b::PrimitiveBlock) = (c.gatestyles.g, string(b)), nqudits(b)
+get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.wg, string(b)), nqudits(b)
+get_brush_texts(c, b::ShiftGate) = (c.gatestyles.wg, "ϕ($(pretty_angle(b.theta)))")
+get_brush_texts(c, b::PhaseGate) = (c.gatestyles.wg, "^$(pretty_angle(b.theta))")
 function get_brush_texts(c, b::T) where T<:ConstantGate
     namestr = string(T.name.name)
     if endswith(namestr, "Gate")
         namestr = namestr[1:end-4]
     end
     # Fix!
-    fill((c.gatestyles.g, namestr), nqudits(b))
+    (c.gatestyles.g, namestr)
 end
 
 get_cbrush_texts(c, b::PrimitiveBlock) = get_brush_texts(c, b)
-get_cbrush_texts(c, ::XGate) = [(c.gatestyles.not, "")]
-get_cbrush_texts(c, ::ZGate) = [(c.gatestyles.c, "")]
+get_cbrush_texts(c, ::XGate) = (c.gatestyles.not, "")
+get_cbrush_texts(c, ::ZGate) = (c.gatestyles.c, "")
 
 # front end
 plot(blk::AbstractBlock; kwargs...) = vizcircuit(blk; kwargs...)
