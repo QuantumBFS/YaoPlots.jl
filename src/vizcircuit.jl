@@ -73,8 +73,6 @@ module CircuitStyles
                     (context(), polygon([(0.0, -w), (0.0, w)]), stroke(linecolor[]), linewidth(lw[]))
                )
     end
-    #WG() = compose(context(), rectangle(-1.5*r[], -r[], 3*r[], 2*r[]), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]))
-    #MULTIGATE(h, w) = compose(context(), rectangle(-w/2-r[], -(h/2+r[]), w+2*r[], (h+2*r[])), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]))
     render(::ComposeSVG, ::MeasureBox, params) = compose(context(),
                         rectangle(-r[], -r[], 2*r[], 2*r[]), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]),
                         compose(context(), curve((-0.8*r[], 0.5*r[]), (-0.8*r[], -0.6*r[]), (0.8*r[], -0.6*r[]), (0.8*r[], 0.5*r[])), stroke(linecolor[]), linewidth(lw[])),
@@ -97,7 +95,6 @@ module CircuitStyles
         x = Cross()
         nc = NDot()
         not = OPlus()
-        wg = Box(2*r[], 2*r[])
         measure = MeasureBox()
 
         # other styles
@@ -303,9 +300,9 @@ end
 # end
 
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
-    @eval get_brush_texts(c, b::RotationGate{D,T,<:$GATE}) where {D,T} = (c.gatestyles.wg, "$($(SYM))($(pretty_angle(b.theta)))")
+    @eval get_brush_texts(c, b::RotationGate{D,T,<:$GATE}) where {D,T} = (c.gatestyles.g, "$($(SYM))($(pretty_angle(b.theta)))")
 end
-get_brush_texts(c, b::EasyBuild.FSimGate) = (c.gatestyles.wg, "FSim($(pretty_angle(b.theta)), $(pretty_angle(b.phi)))")
+get_brush_texts(c, b::EasyBuild.FSimGate) = (c.gatestyles.g, "FSim($(pretty_angle(b.theta)), $(pretty_angle(b.phi)))")
 get_brush_texts(c, ::EasyBuild.SqrtWGate) = (c.gatestyles.g, "√W")
 get_brush_texts(c, ::EasyBuild.SqrtXGate) = (c.gatestyles.g, "√X")
 get_brush_texts(c, ::EasyBuild.SqrtYGate) = (c.gatestyles.g, "√Y")
@@ -339,8 +336,8 @@ get_brush_texts(c, ::ConstGate.PdGate) = (c.gatestyles.g, "P-")
 get_brush_texts(c, ::ConstGate.P0Gate) = (c.gatestyles.g, "P₀")
 get_brush_texts(c, ::ConstGate.P1Gate) = (c.gatestyles.g, "P₁")
 get_brush_texts(c, b::PrimitiveBlock) = (c.gatestyles.g, string(b))
-get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.wg, string(b))
-get_brush_texts(c, b::ShiftGate) = (c.gatestyles.wg, "ϕ($(pretty_angle(b.theta)))")
+get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.g, string(b))
+get_brush_texts(c, b::ShiftGate) = (c.gatestyles.g, "ϕ($(pretty_angle(b.theta)))")
 get_brush_texts(c, b::PhaseGate) = (c.gatestyles.c, "    $(pretty_angle(b.theta))\n")
 function get_brush_texts(c, b::T) where T<:ConstantGate
     namestr = string(T.name.name)
