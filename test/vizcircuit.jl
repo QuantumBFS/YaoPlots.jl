@@ -5,10 +5,10 @@ using YaoBlocks
 
 @testset "gate styles" begin
     c = YaoPlots.CircuitGrid(1)
-	@test YaoPlots.get_brush_texts(c, X)[][2] == "X"
-	@test YaoPlots.get_brush_texts(c, Rx(0.5))[][2] == "Rx(0.5)"
-	@test YaoPlots.get_brush_texts(c, shift(0.5))[][2] == "ϕ(0.5)"
-	@test YaoPlots.get_brush_texts(c, YaoBlocks.phase(0.5))[][2] == "^0.5"
+	@test YaoPlots.get_brush_texts(c, X)[2] == "X"
+	@test YaoPlots.get_brush_texts(c, Rx(0.5))[2] == "Rx(0.5)"
+	@test YaoPlots.get_brush_texts(c, shift(0.5))[2] == "ϕ(0.5)"
+	@test YaoPlots.get_brush_texts(c, YaoBlocks.phase(0.5))[2] == "    0.5\n"
 end
 
 @testset "circuit canvas" begin
@@ -31,7 +31,7 @@ end
 		control(2, 3=>X) >> c
 		control(2, 3=>shift(0.5)) >> c
 		chain(5, control(2, 3=>X), put(1=>X)) >> c
-		@test YaoPlots.depth(c) == 6
+		@test YaoPlots.depth(c) >= 6
 	end
 	@test gg isa Context
 
@@ -66,5 +66,9 @@ end
     YaoPlots.CircuitStyles.textsize[] = 13pt
     YaoPlots.CircuitStyles.paramtextsize[] = 8pt
             
+    @test plot(chain(3, put(1=>X), repeat(3, H), put(2=>Y), repeat(3, Rx(π/2)))) isa Compose.Context
+    darktheme!()
+    @test plot(chain(3, put(1=>X), repeat(3, H), put(2=>Y), repeat(3, Rx(π/2)))) isa Compose.Context
+    lighttheme!()
     @test plot(chain(3, put(1=>X), repeat(3, H), put(2=>Y), repeat(3, Rx(π/2)))) isa Compose.Context
 end
