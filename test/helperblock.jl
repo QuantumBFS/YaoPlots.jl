@@ -1,6 +1,5 @@
 using YaoPlots, Yao
 using Test, Compose
-using Cairo
 
 @testset "LabelBlock" begin
     x = put(5, (2,3)=>matblock(rand_unitary(4)))

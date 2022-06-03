@@ -1,7 +1,7 @@
 using YaoPlots
 using Compose
 using Test
-using YaoBlocks
+using Yao
 
 @testset "gate styles" begin
     c = YaoPlots.CircuitGrid(1)
