@@ -341,7 +341,7 @@ get_brush_texts(c, ::ConstGate.P1Gate) = (c.gatestyles.g, "P₁")
 get_brush_texts(c, b::PrimitiveBlock) = (c.gatestyles.g, string(b))
 get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.wg, string(b))
 get_brush_texts(c, b::ShiftGate) = (c.gatestyles.wg, "ϕ($(pretty_angle(b.theta)))")
-get_brush_texts(c, b::PhaseGate) = (c.gatestyles.c, "    $(pretty_angle(b.theta))")
+get_brush_texts(c, b::PhaseGate) = (c.gatestyles.c, "    $(pretty_angle(b.theta))\n")
 function get_brush_texts(c, b::T) where T<:ConstantGate
     namestr = string(T.name.name)
     if endswith(namestr, "Gate")
@@ -368,11 +368,16 @@ end
 
 function circuit_canvas(f, nline::Int; backend=CircuitStyles.ComposeSVG(), w_depth=0.85, w_line=0.75, show_ending_bar=false, starting_texts=nothing, starting_offset=-0.3, ending_texts=nothing, ending_offset=0.3, graphsize=1.0, gatestyles=CircuitStyles.GateStyles())
     c = CircuitGrid(nline; w_depth, w_line, gatestyles, backend)
-    g = canvas() do
-        initialize!(c; starting_texts, starting_offset)
-        f(c)
-        finalize!(c; show_ending_bar, ending_texts, ending_offset)
-    end
+    Viznet.empty_cache!()
+    initialize!(c; starting_texts, starting_offset)
+    f(c)
+    finalize!(c; show_ending_bar, ending_texts, ending_offset)
+    # flush!
+    g = compose(context(),
+        Viznet.flush!(Viznet.TEXT_CACHE)...,
+        Viznet.flush!(Viznet.EDGE_CACHE)...,
+        Viznet.flush!(Viznet.NODE_CACHE)...,
+        )
     a, b = (depth(c)+1)*w_depth, nline*w_line
     Compose.set_default_graphic_size(a*2.5*graphsize*cm, b*2.5*graphsize*cm)
     compose(context(0.5/a, -0.5/b, 1/a, 1/b), g)

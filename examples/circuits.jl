@@ -4,7 +4,7 @@ using Compose, Cairo
 _save(str) = PNG(joinpath(@__DIR__, str))
 
 lighttheme!()
-#YaoPlots.CircuitStyles.gate_bgcolor[] = "white"
+YaoPlots.CircuitStyles.gate_bgcolor[] = "white"  # default is transparent
 # qft circuit
 vizcircuit(qft_circuit(5)) |> _save("qft.png")
 
@@ -40,11 +40,14 @@ chain(5, [put(5, 2=>ConstGate.Sdag), put(5, 3=>ConstGate.Tdag),
     put(5, (2,3)=>ConstGate.SWAP), put(5, (1,)=>ConstGate.P0), put(5, (1,)=>ConstGate.I2),
     put(5, (2,)=>ConstGate.P1), put(5, (1,)=>ConstGate.Pu), put(5, (1,)=>ConstGate.Pd),
     put(5, (2,)=>ConstGate.T),
+    put(5, (2,)=>phase(0.4π)),
+    put(5, (2,)=>shift(0.4π)),
     ]) |> vizcircuit |> _save("constgates.png")
 
 chain(5, [put(5, (2,3)=>matblock(Matrix(SWAP), tag="SWAP")'), put(5, 2=>matblock(mat(I2), tag="id")), put(5, 2=>label(X, "X")), control(5, (5,3), (2,4,1)=>put(3, (1,3)=>label(SWAP, "SWAP")))]) |> vizcircuit |>  _save("multiqubit.png")
 
 YaoPlots.darktheme!()
+YaoPlots.CircuitStyles.gate_bgcolor[] = "transparent"  # default is transparent
 # qft circuit
 vizcircuit(qft_circuit(5)) |> _save("qft-white.png")
 
