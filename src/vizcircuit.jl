@@ -122,7 +122,6 @@ module CircuitStyles
         if contains(txt, '\n')
             for (i, txt) in enumerate(split(loctxt[2], "\n"))
                 text(txt, Point(loctxt[1])*unit[]+i*Point(0, 10)-Point((width-0.1)*unit[]/2, height*unit[]/2); halign=:left, valign=:middle)
-                #text(, width*unit[], Point(loctxt[1])*unit[] - Point(width, height)*unit[]/2)
             end
         else
             text(loctxt[2], Point(loctxt[1])*unit[]; halign=:center, valign=:middle)
@@ -416,8 +415,8 @@ function circuit_canvas(f, nline::Int; format=:svg, filename=nothing, w_depth=0.
     Luxor.finish()
     # the second time draw
     u = CircuitStyles.unit[]
-    a, b = ceil(Int, (depth(c)+1)*w_depth), ceil(Int, nline*w_line)
-    _luxor(a*u, b*u, w_depth/2*u, -w_line/2*u; format, filename) do
+    a, b = ceil(Int, (depth(c)+1)*w_depth*u), ceil(Int, nline*w_line*u)
+    _luxor(a, b, w_depth/2*u, -w_line/2*u; format, filename) do
         c = CircuitGrid(nline; w_depth, w_line, gatestyles)
         initialize!(c; starting_texts, starting_offset)
         f(c)
