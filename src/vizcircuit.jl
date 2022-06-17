@@ -121,10 +121,10 @@ module CircuitStyles
         setcolor(textcolor[])
         if contains(txt, '\n')
             for (i, txt) in enumerate(split(loctxt[2], "\n"))
-                text(txt, Point(loctxt[1])*unit[]+i*Point(0, 10)-Point((width-0.1)*unit[]/2, height*unit[]/2); halign=:left, valign=:middle)
+                text(txt, Point(loc)*unit[]+i*Point(0, t.fontsize)-Point((width-0.1)*unit[]/2, height*unit[]/2); halign=:left, valign=:middle)
             end
         else
-            text(loctxt[2], Point(loctxt[1])*unit[]; halign=:center, valign=:middle)
+            text(txt, Point(loc)*unit[]; halign=:center, valign=:middle)
         end
     end
 
