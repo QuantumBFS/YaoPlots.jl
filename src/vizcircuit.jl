@@ -1,33 +1,21 @@
-using Viznet: canvas
-import Viznet
-using Compose: CurvePrimitive, Form
 using Yao
 using BitBasis
+import Luxor
 
-export CircuitStyles, CircuitGrid, circuit_canvas, vizcircuit, pt, cm, darktheme!, lighttheme!
+export CircuitStyles, CircuitGrid, circuit_canvas, vizcircuit, darktheme!, lighttheme!
 
 module CircuitStyles
-    using Compose
-    import Viznet
+    using Luxor
+    const unit = Ref(60)    # number of points in a unit
     const r = Ref(0.2)
-    const lw = Ref(1pt)
-    const textsize = Ref(16pt)
-    const paramtextsize = Ref(10pt)
+    const lw = Ref(1.0)
+    const textsize = Ref(16.0)
+    const paramtextsize = Ref(10.0)
     const fontfamily = Ref("monospace")
+    #const fontfamily = Ref("Dejavu Sans")
     const linecolor = Ref("#000000")
     const gate_bgcolor = Ref("transparent")
     const textcolor = Ref("#000000")
-    const scale = Ref(1.0)
-
-    # formats
-    struct ComposeSVG end
-    struct Tikz end
-
-    # Context is gate dependent information
-    Base.@kwdef struct Context
-        hspace::Float64
-        wspace::Float64
-    end
 
     abstract type Gadget end
     struct Box{FT} <: Gadget
@@ -44,50 +32,89 @@ module CircuitStyles
     end
     struct Line <: Gadget end
     get_width(::Cross) = 0.0
-    get_width(::Dot) = r[]/3
-    get_width(::NDot) = r[]/3
+    get_width(::Dot) = r[]/2.5
+    get_width(::NDot) = r[]/2.5
     get_width(::OPlus) = r[]*1.4
-    boxsize(b::Gadget, params) = (w = get_width(b); (w, w))
-    function boxsize(b::Box, params)
-        hspace, wspace = params.hspace, params.wspace
-        return b.width + wspace, b.height + hspace
+    boxsize(b::Gadget) = (w = get_width(b); (w, w))
+    function boxsize(b::Box)
+        return b.width, b.height
     end
-    function boxsize(::MeasureBox, params)
+    function boxsize(::MeasureBox)
         return 2 * r[], 2 * r[]
     end
 
-    function render(::ComposeSVG, b::Box, params)
-        WIDTH, HEIGHT = boxsize(b, params)
-        compose(context(), rectangle(-WIDTH/2, -HEIGHT/2, WIDTH, HEIGHT), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]))
+    function render(b::Box, loc)
+        setcolor(gate_bgcolor[])
+        Luxor.box(Point(loc)*unit[], b.width*unit[], b.height*unit[], :fill)
+        setcolor(linecolor[])
+        setline(lw[])
+        Luxor.box(Point(loc)*unit[], b.width*unit[], b.height*unit[], :stroke)
     end
 
-    #G() = compose(context(), rectangle(-r[], -r[], 2*r[], 2*r[]), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]))
-    render(::ComposeSVG, d::Dot, params) = compose(context(), circle(0.0, 0.0, get_width(d)/2), fill(linecolor[]), linewidth(0))
-    render(::ComposeSVG, d::NDot, params) = compose(context(), circle(0.0, 0.0, get_width(d)/2), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]))
-    render(::ComposeSVG, d::Cross, params) = compose(context(), xgon(0.0, 0.0, r[], 4), fill(linecolor[]), linewidth(0))
-    function render(::ComposeSVG, d::OPlus, params)
+    function render(d::Dot, loc)
+        setcolor(linecolor[])
+        circle(Point(loc)*unit[], get_width(d)*unit[]/2, :fill)
+    end
+    function render(d::NDot, loc)
+        setcolor(gate_bgcolor[])
+        circle(Point(loc)*unit[], get_width(d)*unit[]/2, :fill)
+        setcolor(linecolor[])
+        setline(lw[])
+        circle(Point(loc)*unit[], get_width(d)*unit[]/2, :stroke)
+    end
+    function render(d::Cross, loc)
+        setline(lw[])
+        setcolor(linecolor[])
+        line(Point(loc[1]-r[]/sqrt(2), loc[2]-r[]/sqrt(2))*unit[], Point(loc[1]+r[]/sqrt(2), loc[2]+r[]/sqrt(2))*unit[], :stroke)
+        line(Point(loc[1]-r[]/sqrt(2), loc[2]+r[]/sqrt(2))*unit[], Point(loc[1]+r[]/sqrt(2), loc[2]-r[]/sqrt(2))*unit[], :stroke)
+    end
+    function render(d::OPlus, loc)
         w = get_width(d) / 2
-        compose(context(),
-                    (context(), circle(0.0, 0.0, w), stroke(linecolor[]), linewidth(lw[]), fill("transparent")),
-                    (context(), polygon([(-w, 0.0), (w, 0.0)]), stroke(linecolor[]), linewidth(lw[])),
-                    (context(), polygon([(0.0, -w), (0.0, w)]), stroke(linecolor[]), linewidth(lw[]))
-               )
+        setcolor(gate_bgcolor[])
+        circle(Point(loc)*unit[], w*unit[], :fill)
+        setcolor(linecolor[])
+        setline(lw[])
+        x0 = Point(loc)*unit[]
+        circle(x0, w*unit[], :stroke)
+        line(x0+Point(-w*unit[], 0.0), x0+Point(w*unit[], 0.0*unit[]), :stroke)
+        line(x0+Point(0.0, -w*unit[]), x0+Point(0.0*unit[], w*unit[]), :stroke)
     end
-    render(::ComposeSVG, ::MeasureBox, params) = compose(context(),
-                        rectangle(-r[], -r[], 2*r[], 2*r[]), fill(gate_bgcolor[]), stroke(linecolor[]), linewidth(lw[]),
-                        compose(context(), curve((-0.8*r[], 0.5*r[]), (-0.8*r[], -0.6*r[]), (0.8*r[], -0.6*r[]), (0.8*r[], 0.5*r[])), stroke(linecolor[]), linewidth(lw[])),
-                        compose(context(), line([(0.0, 0.5*r[]), (0.7*r[], -0.4*r[])]), stroke(linecolor[]), linewidth(lw[])),
-        begin
-            ns = Viznet.nodestyle(:triangle, fill(linecolor[]); r=0.1*r[], θ=atan(0.7, 0.9))
-            Viznet.inner_most_containers(ns) do c
-                Viznet.update_locs!(c.form_children, [(0.7*r[], -0.4*r[])])
-            end
-            ns
-        end
-        )
+    function render(::MeasureBox, loc)
+        x0 = Point(loc)*unit[]
+        setcolor(gate_bgcolor[])
+        box(x0, 2*r[]*unit[], 2*r[]*unit[], :fill)
+        setcolor(linecolor[])
+        setline(lw[])
+        box(x0, 2*r[]*unit[], 2*r[]*unit[], :stroke)
+        move(x0+Point(-0.8*r[], 0.5*r[])*unit[])
+        curve(
+            x0+Point(-0.8*r[], -0.6*r[])*unit[],
+            #x0+Point(0.0, -0.65*r[])*unit[],
+            x0+Point(0.8*r[], -0.6*r[])*unit[],
+            x0+Point(0.8*r[], 0.5*r[])*unit[])
+        strokepath()
+        line(x0+Point(0.0, 0.5*r[])*unit[], x0+Point(0.7*r[], -0.4*r[])*unit[], :stroke)
+        # begin
+        #     ns = Viznet.nodestyle(:triangle, fill(linecolor[]); r=0.1*r[], θ=atan(0.7, 0.9))
+        #     Viznet.inner_most_containers(ns) do c
+        #         Viznet.update_locs!(c.form_children, [(0.7*r[], -0.4*r[])])
+        #     end
+        #     ns
+        # end
+    end
 
-    render(::ComposeSVG, ::Line, params) = compose(context(), line(), stroke(linecolor[]), linewidth(lw[]))
-    render(::ComposeSVG, t::Text, params) = compose(context(), text(0.0, 0.0, "", hcenter, vcenter), fontsize(t.fontsize*scale[]), fill(textcolor[]), font(fontfamily[]))
+    function render(::Line, locs)
+        setcolor(linecolor[])
+        setline(lw[])
+        line(Point(locs[1])*unit[], Point(locs[2])*unit[], :stroke)
+    end
+    function render(t::Text, loctxt)
+        fontsize(t.fontsize)
+        fontface(fontfamily[])
+        #fontface("Dejavu Sans")
+        setcolor(textcolor[])
+        text(loctxt[2], Point(loctxt[1])*unit[]; halign=:center, valign=:middle)
+    end
 
     Base.@kwdef struct GateStyles
         g = Box(2*r[], 2*r[])
@@ -105,7 +132,6 @@ module CircuitStyles
 end
 
 struct CircuitGrid
-    backend
     frontier::Vector{Int}
     w_depth::Float64
     w_line::Float64
@@ -117,8 +143,8 @@ depth(c::CircuitGrid) = frontier(c, 1, nline(c))
 Base.getindex(c::CircuitGrid, i, j) = (c.w_depth*i, c.w_line*j)
 Base.typed_vcat(c::CircuitGrid, ij1, ij2) = (c[ij1...], c[ij2...])
 
-function CircuitGrid(nline::Int; w_depth=1.0, w_line=1.0, gatestyles=CircuitStyles.GateStyles(), backend=CircuitStyles.ComposeSVG())
-    CircuitGrid(backend, zeros(Int, nline), w_depth, w_line, gatestyles)
+function CircuitGrid(nline::Int; w_depth=1.0, w_line=1.0, gatestyles=CircuitStyles.GateStyles())
+    CircuitGrid(zeros(Int, nline), w_depth, w_line, gatestyles)
 end
 
 function frontier(c::CircuitGrid, args...)
@@ -133,15 +159,17 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
 
     # get the gate width and the circuit depth to draw
     boxwidths, boxheights = Float64[], Float64[]
-    for (j, b, txt) in loc_brush_texts
-        length(j) == 0 && continue
-        wspace, fontsize = text_width_and_size(txt)
-        hspace = (maximum(j)-minimum(j)) * c.w_line
-        context = CircuitStyles.Context(; wspace=wspace,
-                                        hspace=hspace)
-        boxwidth, boxheight = CircuitStyles.boxsize(b, context)
-        push!(boxwidths, boxwidth)
-        push!(boxheights, boxheight)
+    loc_brush_texts = map(loc_brush_texts) do (j, b, txt)
+        if length(j) != 0
+            wspace, _ = text_width_and_size(txt)
+            hspace = (maximum(j)-minimum(j)) * c.w_line
+            # make box larger
+            b = b isa CircuitStyles.Box ? CircuitStyles.Box(b.height + hspace, b.width + wspace) : b
+            boxwidth, boxheight = CircuitStyles.boxsize(b)
+            push!(boxwidths, boxwidth)
+            push!(boxheights, boxheight)
+        end
+        (j, b, txt)
     end
     max_width = maximum(boxwidths)
     ncolumn = max(1, ceil(Int, max_width/c.w_depth + 0.2))  # 0.1 is the minimum gap between two columns
@@ -151,16 +179,13 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
     local jpre
     for (k, ((j, b, txt), boxheight)) in enumerate(zip(loc_brush_texts, boxheights))
         length(j) == 0 && continue
-        wspace, fontsize = text_width_and_size(txt)
-        hspace = (maximum(j)-minimum(j)) * c.w_line
+        _, fontsize = text_width_and_size(txt)
         jmid = (minimum(j)+maximum(j))/2
-        context = CircuitStyles.Context(; wspace=wspace,
-                                        hspace=hspace)
-        CircuitStyles.render(c.backend, b, context) >> c[i, jmid]
-        CircuitStyles.render(c.backend, CircuitStyles.Text(fontsize), context) >> (c[i, jmid], txt)
+        CircuitStyles.render(b, c[i, jmid])
+        CircuitStyles.render(CircuitStyles.Text(fontsize), (c[i,jmid], txt))
         # use line to connect blocks in the same gate
         if k!=1
-            CircuitStyles.render(c.backend, c.gatestyles.line, context) >> c[(i, jmid-boxheight/2/c.w_line); (i, jpre)]
+            CircuitStyles.render(c.gatestyles.line, c[(i, jmid-boxheight/2/c.w_line); (i, jpre)])
         end
         jpre = jmid + boxheight/2/c.w_line
     end
@@ -169,13 +194,13 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
     # connect horizontal lines
     for (width, (j, b, txt)) in zip(boxwidths, loc_brush_texts)
         for jj in j
-            CircuitStyles.render(CircuitStyles.ComposeSVG(), c.gatestyles.line, nothing) >> c[(c.frontier[jj], jj); (i-width/2/c.w_depth, jj)]
-            CircuitStyles.render(CircuitStyles.ComposeSVG(), c.gatestyles.line, nothing) >> c[(i+width/2/c.w_depth, jj); (ipre+ncolumn, jj)]
+            CircuitStyles.render(c.gatestyles.line, c[(c.frontier[jj], jj); (i-width/2/c.w_depth, jj)])
+            CircuitStyles.render(c.gatestyles.line, c[(i+width/2/c.w_depth, jj); (ipre+ncolumn, jj)])
             c.frontier[jj] = ipre + ncolumn
         end
     end
     for j in setdiff(minimum(locs):maximum(locs), locs)
-        CircuitStyles.render(CircuitStyles.ComposeSVG(), c.gatestyles.line, nothing) >> c[(c.frontier[j], j); (ipre+ncolumn, j)]
+        CircuitStyles.render(c.gatestyles.line, c[(c.frontier[j], j); (ipre+ncolumn, j)])
         c.frontier[j] = ipre + ncolumn
     end
 end
@@ -184,22 +209,22 @@ function text_width_and_size(text)
     W = maximum(x->textwidth(x), split(text, "\n"))
     fontsize = W > 3 ? CircuitStyles.paramtextsize[] : CircuitStyles.textsize[]
     # -2 because the gate has a default size
-    width = max(W - 4, 0) * fontsize.value * 0.025  # mm to cm
+    width = max(W - 4, 0) * fontsize * 0.016  # mm to cm
     return width, fontsize
 end
 
 function initialize!(c::CircuitGrid; starting_texts, starting_offset)
     starting_texts !== nothing && for j=1:nline(c)
-        CircuitStyles.render(c.backend, c.gatestyles.text, nothing) >> (c[starting_offset, j], string(starting_texts[j]))
+        CircuitStyles.render(c.gatestyles.text, (c[starting_offset, j], string(starting_texts[j])))
     end
 end
 
 function finalize!(c::CircuitGrid; show_ending_bar, ending_offset, ending_texts)
     i = frontier(c, 1, nline(c))
     for j=1:nline(c)
-        show_ending_bar && c.gatestyles.line >> c[(i, j-0.2); (i, j+0.2)]
-        CircuitStyles.render(c.backend, c.gatestyles.line, nothing) >> c[(i, j); (c.frontier[j], j)]
-        ending_texts !== nothing && c.gatestyles.text >> (c[i+ending_offset, j], string(ending_texts[j]))
+        show_ending_bar && CircuitStyles.render(c.gatestyles.line, c[(i, j-0.2); (i, j+0.2)])
+        CircuitStyles.render(c.gatestyles.line, c[(i, j); (c.frontier[j], j)])
+        ending_texts !== nothing && CircuitStyles.render(c.gatestyles.text, (c[i+ending_offset, j], string(ending_texts[j])))
     end
 end
 
@@ -354,39 +379,55 @@ get_cbrush_texts(c, ::ZGate) = (c.gatestyles.c, "")
 
 # front end
 plot(blk::AbstractBlock; kwargs...) = vizcircuit(blk; kwargs...)
-function vizcircuit(blk::AbstractBlock; w_depth=0.85, w_line=0.75, scale=1.0, show_ending_bar=false, starting_texts=nothing, starting_offset=-0.3, ending_texts=nothing, ending_offset=0.3, graphsize=1.0, gatestyles=CircuitStyles.GateStyles(), backend=CircuitStyles.ComposeSVG())
-    CircuitStyles.scale[] = scale
-    img = circuit_canvas(nqudits(blk); w_depth, w_line, show_ending_bar, starting_texts, starting_offset, ending_texts, ending_offset, graphsize, gatestyles, backend) do c
-        blk >> c
+function vizcircuit(blk::AbstractBlock; w_depth=0.85, w_line=0.75, format=:svg, filename=nothing,
+        show_ending_bar=false, starting_texts=nothing, starting_offset=-0.3,
+        ending_texts=nothing, ending_offset=0.3, gatestyles=CircuitStyles.GateStyles())
+    img = circuit_canvas(nqudits(blk); w_depth, w_line, show_ending_bar, starting_texts, starting_offset,
+            ending_texts, ending_offset, gatestyles, format, filename) do c
+        addblock!(c, blk)
     end
-    CircuitStyles.scale[] = 1.0
-    return img |> rescale(scale)
+    return img
 end
 
-function circuit_canvas(f, nline::Int; backend=CircuitStyles.ComposeSVG(), w_depth=0.85, w_line=0.75, show_ending_bar=false, starting_texts=nothing, starting_offset=-0.3, ending_texts=nothing, ending_offset=0.3, graphsize=1.0, gatestyles=CircuitStyles.GateStyles())
-    c = CircuitGrid(nline; w_depth, w_line, gatestyles, backend)
-    Viznet.empty_cache!()
+addblock!(c::CircuitGrid, blk::AbstractBlock) = draw!(c, blk, collect(1:nqudits(blk)), [])
+addblock!(c::CircuitGrid, blk::Function) = addblock!(c, blk(nline(c)))
+
+function circuit_canvas(f, nline::Int; format=:svg, filename=nothing, w_depth=0.85, w_line=0.75,
+        show_ending_bar=false, starting_texts=nothing, starting_offset=-0.3, ending_texts=nothing,
+        ending_offset=0.3, gatestyles=CircuitStyles.GateStyles())
+    # the first time to estimate the canvas size
+    Luxor.Drawing(50, 50, :png)
+    c = CircuitGrid(nline; w_depth, w_line, gatestyles)
     initialize!(c; starting_texts, starting_offset)
     f(c)
     finalize!(c; show_ending_bar, ending_texts, ending_offset)
-    # flush!
-    g = compose(context(),
-        Viznet.flush!(Viznet.TEXT_CACHE)...,
-        Viznet.flush!(Viznet.EDGE_CACHE)...,
-        Viznet.flush!(Viznet.NODE_CACHE)...,
-        )
-    a, b = (depth(c)+1)*w_depth, nline*w_line
-    Compose.set_default_graphic_size(a*2.5*graphsize*cm, b*2.5*graphsize*cm)
-    compose(context(0.5/a, -0.5/b, 1/a, 1/b), g)
+    Luxor.finish()
+    # the second time draw
+    u = CircuitStyles.unit[]
+    a, b = ceil(Int, (depth(c)+1)*w_depth), ceil(Int, nline*w_line)
+    _luxor(a*u, b*u, w_depth/2*u, -w_line/2*u; format, filename) do
+        c = CircuitGrid(nline; w_depth, w_line, gatestyles)
+        initialize!(c; starting_texts, starting_offset)
+        f(c)
+        finalize!(c; show_ending_bar, ending_texts, ending_offset)
+    end
 end
 
-Base.:>>(blk::AbstractBlock, c::CircuitGrid) = draw!(c, blk, collect(1:nqudits(blk)), [])
-Base.:>>(blk::Function, c::CircuitGrid) = blk(nline(c)) >> c
-
-function rescale(factor)
-    a, b = Compose.default_graphic_width, Compose.default_graphic_height
-    Compose.set_default_graphic_size(a*factor, b*factor)
-    graph -> compose(context(), graph)
+function _luxor(f, Dx, Dy, offsetx, offsety; format, filename)
+    if filename === nothing
+        if format == :pdf
+            _format = tempname()*".pdf"
+        else
+            _format = format
+        end
+    else
+        _format = filename
+    end
+    Luxor.Drawing(round(Int,Dx), round(Int,Dy), _format)
+    Luxor.origin(offsetx, offsety)
+    f()
+    Luxor.finish()
+    Luxor.preview()
 end
 
 vizcircuit(; kwargs...) = c->vizcircuit(c; kwargs...)

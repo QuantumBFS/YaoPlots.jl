@@ -30,6 +30,6 @@ Base.adjoint(x::LabelBlock) = LabelBlock(adjoint(content(x)), endswith(x.name, "
 Base.copy(x::LabelBlock) = LabelBlock(copy(content(x)), x.name)
 YaoBlocks.Optimise.to_basictypes(block::LabelBlock) = block
 
-export label
-label(b::AbstractBlock, str::String) = LabelBlock(b, str)
+export addlabel
+addlabel(b::AbstractBlock, str::String) = LabelBlock(b, str)
 
