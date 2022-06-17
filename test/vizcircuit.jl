@@ -9,7 +9,7 @@ using Luxor
 	@test YaoPlots.get_brush_texts(c, X)[2] == "X"
 	@test YaoPlots.get_brush_texts(c, Rx(0.5))[2] == "Rx(0.5)"
 	@test YaoPlots.get_brush_texts(c, shift(0.5))[2] == "ϕ(0.5)"
-	@test YaoPlots.get_brush_texts(c, YaoBlocks.phase(0.5))[2] == "    0.5\n"
+	@test YaoPlots.get_brush_texts(c, YaoBlocks.phase(0.5))[2] == ""
 end
 
 @testset "circuit canvas" begin
