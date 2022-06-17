@@ -7,7 +7,7 @@ vizcircuit(qft_circuit(5); filename=joinpath(@__DIR__, "qft.png"))
 
 # labeled and time evolution
 vizcircuit(chain(control(5, 3, (2,4)=>matblock(rand_unitary(4); tag="label")),
-    put(5, (2,4)=>matblock(rand_unitary(4); tag="labellabel")), time_evolve(put(5, 2=>X), 0.2)), filename=joinpath(@__DIR__, "labelled.png"))
+    put(5, (2,4)=>matblock(rand_unitary(4); tag="labellabel")), time_evolve(+(put(5, 2=>X), kron(5, 2=>Z, 3=>Y)), 0.2)), filename=joinpath(@__DIR__, "labelled.png"))
 
 # variational circuit
 vizcircuit(variational_circuit(5), filename=joinpath(@__DIR__, "variational.png"))

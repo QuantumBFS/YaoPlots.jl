@@ -27,11 +27,15 @@ module CircuitStyles
     struct NDot <: Gadget end
     struct OPlus <: Gadget end
     struct MeasureBox <: Gadget end
+    struct Phase <: Gadget
+        text::String
+    end
     struct Text{FT} <: Gadget
         fontsize::FT
     end
     struct Line <: Gadget end
     get_width(::Cross) = 0.0
+    get_width(::Phase) = r[]/2.5
     get_width(::Dot) = r[]/2.5
     get_width(::NDot) = r[]/2.5
     get_width(::OPlus) = r[]*1.4
@@ -55,6 +59,15 @@ module CircuitStyles
         setcolor(linecolor[])
         circle(Point(loc)*unit[], get_width(d)*unit[]/2, :fill)
     end
+    function render(d::Phase, loc)
+        x0 = Point(loc)*unit[]
+        setcolor(linecolor[])
+        circle(x0, get_width(d)*unit[]/2, :fill)
+        setcolor(textcolor[])
+        fontsize(textsize[])
+        fontface(fontfamily[])
+        text(d.text, x0+Point(8,8); valign=:middle, halign=:center)
+    end
     function render(d::NDot, loc)
         setcolor(gate_bgcolor[])
         circle(Point(loc)*unit[], get_width(d)*unit[]/2, :fill)
@@ -62,7 +75,7 @@ module CircuitStyles
         setline(lw[])
         circle(Point(loc)*unit[], get_width(d)*unit[]/2, :stroke)
     end
-    function render(d::Cross, loc)
+    function render(::Cross, loc)
         setline(lw[])
         setcolor(linecolor[])
         line(Point(loc[1]-r[]/sqrt(2), loc[2]-r[]/sqrt(2))*unit[], Point(loc[1]+r[]/sqrt(2), loc[2]+r[]/sqrt(2))*unit[], :stroke)
@@ -89,18 +102,10 @@ module CircuitStyles
         move(x0+Point(-0.8*r[], 0.5*r[])*unit[])
         curve(
             x0+Point(-0.8*r[], -0.6*r[])*unit[],
-            #x0+Point(0.0, -0.65*r[])*unit[],
             x0+Point(0.8*r[], -0.6*r[])*unit[],
             x0+Point(0.8*r[], 0.5*r[])*unit[])
         strokepath()
         line(x0+Point(0.0, 0.5*r[])*unit[], x0+Point(0.7*r[], -0.4*r[])*unit[], :stroke)
-        # begin
-        #     ns = Viznet.nodestyle(:triangle, fill(linecolor[]); r=0.1*r[], θ=atan(0.7, 0.9))
-        #     Viznet.inner_most_containers(ns) do c
-        #         Viznet.update_locs!(c.form_children, [(0.7*r[], -0.4*r[])])
-        #     end
-        #     ns
-        # end
     end
 
     function render(::Line, locs)
@@ -109,11 +114,19 @@ module CircuitStyles
         line(Point(locs[1])*unit[], Point(locs[2])*unit[], :stroke)
     end
     function render(t::Text, loctxt)
+        loc, txt, width, height = loctxt
         fontsize(t.fontsize)
         fontface(fontfamily[])
         #fontface("Dejavu Sans")
         setcolor(textcolor[])
-        text(loctxt[2], Point(loctxt[1])*unit[]; halign=:center, valign=:middle)
+        if contains(txt, '\n')
+            for (i, txt) in enumerate(split(loctxt[2], "\n"))
+                text(txt, Point(loctxt[1])*unit[]+i*Point(0, 10)-Point((width-0.1)*unit[]/2, height*unit[]/2); halign=:left, valign=:middle)
+                #text(, width*unit[], Point(loctxt[1])*unit[] - Point(width, height)*unit[]/2)
+            end
+        else
+            text(loctxt[2], Point(loctxt[1])*unit[]; halign=:center, valign=:middle)
+        end
     end
 
     Base.@kwdef struct GateStyles
@@ -182,7 +195,7 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
         _, fontsize = text_width_and_size(txt)
         jmid = (minimum(j)+maximum(j))/2
         CircuitStyles.render(b, c[i, jmid])
-        CircuitStyles.render(CircuitStyles.Text(fontsize), (c[i,jmid], txt))
+        CircuitStyles.render(CircuitStyles.Text(fontsize), (c[i,jmid], txt, CircuitStyles.boxsize(b)...))
         # use line to connect blocks in the same gate
         if k!=1
             CircuitStyles.render(c.gatestyles.line, c[(i, jmid-boxheight/2/c.w_line); (i, jpre)])
@@ -206,11 +219,17 @@ function _draw!(c::CircuitGrid, loc_brush_texts)
 end
 
 function text_width_and_size(text)
-    W = maximum(x->textwidth(x), split(text, "\n"))
-    fontsize = W > 3 ? CircuitStyles.paramtextsize[] : CircuitStyles.textsize[]
+    lines = split(text, "\n")
+    widths = map(x->textwidth(x), lines)
+    (mw, loc) = findmax(widths)
+    fontsize = mw > 3 ? CircuitStyles.paramtextsize[] : CircuitStyles.textsize[]
     # -2 because the gate has a default size
-    width = max(W - 4, 0) * fontsize * 0.016  # mm to cm
-    return width, fontsize
+    #width = max(W - 4, 0) * fontsize * 0.016  # mm to cm
+    Luxor.fontsize(fontsize)
+    Luxor.fontface(CircuitStyles.fontfamily[])
+    width, height = Luxor.textextents(lines[loc])[3:4]
+    w = max(width / CircuitStyles.unit[] - CircuitStyles.r[]*2 + 0.1, 0.0)
+    return w, fontsize
 end
 
 function initialize!(c::CircuitGrid; starting_texts, starting_offset)
@@ -317,13 +336,6 @@ for GT in [:KronBlock, :RepeatedBlock, :CachedBlock, :Subroutine, :(YaoBlocks.AD
         draw!(c, YaoBlocks.Optimise.to_basictypes(p), address, controls)
     end
 end
-# function draw!(c::CircuitGrid, b::GeneralMatrixBlock{GT}, address, controls) where {GT}
-#     length(address) == 0 && return
-#     nline = maximum(address)-minimum(address)
-#     g = CircuitStyles.MULTIGATE(nline*c.w_line, get_textwidth(b.tag))
-#     _draw!(c, [controls..., (address, g, b.tag)])
-# end
-
 for (GATE, SYM) in [(:XGate, :Rx), (:YGate, :Ry), (:ZGate, :Rz)]
     @eval get_brush_texts(c, b::RotationGate{D,T,<:$GATE}) where {D,T} = (c.gatestyles.g, "$($(SYM))($(pretty_angle(b.theta)))")
 end
@@ -363,7 +375,7 @@ get_brush_texts(c, ::ConstGate.P1Gate) = (c.gatestyles.g, "P₁")
 get_brush_texts(c, b::PrimitiveBlock) = (c.gatestyles.g, string(b))
 get_brush_texts(c, b::TimeEvolution) = (c.gatestyles.g, string(b))
 get_brush_texts(c, b::ShiftGate) = (c.gatestyles.g, "ϕ($(pretty_angle(b.theta)))")
-get_brush_texts(c, b::PhaseGate) = (c.gatestyles.c, "    $(pretty_angle(b.theta))\n")
+get_brush_texts(c, b::PhaseGate) = (CircuitStyles.Phase("$(pretty_angle(b.theta))"), "")
 function get_brush_texts(c, b::T) where T<:ConstantGate
     namestr = string(T.name.name)
     if endswith(namestr, "Gate")
