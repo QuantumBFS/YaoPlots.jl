@@ -227,7 +227,7 @@ function text_width_and_size(text)
     Luxor.fontsize(fontsize)
     Luxor.fontface(CircuitStyles.fontfamily[])
     width, height = Luxor.textextents(lines[loc])[3:4]
-    w = max(width / CircuitStyles.unit[] - CircuitStyles.r[]*2 + 0.1, 0.0)
+    w = max(width / CircuitStyles.unit[] - CircuitStyles.r[]*2 + 0.2, 0.0)
     return w, fontsize
 end
 
@@ -323,7 +323,7 @@ function draw!(c::CircuitGrid, cb::ControlBlock{GT,C}, address, controls) where 
     draw!(c, cb.content, locs, [controls..., mycontrols...])
 end
 
-for B in [:LabelBlock, :GeneralMatrixBlock]
+for B in [:LabelBlock, :GeneralMatrixBlock, :Add]
     @eval function draw!(c::CircuitGrid, cb::$B, address, controls)
         length(address) == 0 && return
         #is_continuous_chunk(address) || error("address not continuous in a block marked as continous.")
