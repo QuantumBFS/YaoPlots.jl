@@ -69,7 +69,7 @@ julia> bloch_sphere("|ψ⟩"=>rand_state(1), "ρ"=>density_matrix(rand_state(2),
 function bloch_sphere(states...;
         textsize=BlochStyles.textsize[],
         color = BlochStyles.color[],
-        drawing_size = 500,
+        drawing_size = 300,
         offset_x = 0,
         offset_y = 0,
         filename = nothing,

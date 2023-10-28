@@ -46,10 +46,9 @@ function simulate(t; dt=0.02, dissiplation=0.2, filename=nothing)
     states = ["|+⟩"=>rho]
     for t = 0:dt:t
         rho = mestep(rho, h, Ls, dt)
-        @show sum(abs2, rho.state - rho.state')
         push!(states, ""=>rho)
     end
     return bloch_sphere(states...; filename)
 end
 
-simulate(π/2; filename=joinpath(@__DIR__, "constgates.png"))
+simulate(π/2; filename=joinpath(@__DIR__, "mesolve.png"))
